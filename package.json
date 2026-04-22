@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "dotenv-cli": "^11.0.0",
-    "tsc-watch": "^7.2.0"
-  }
-}
