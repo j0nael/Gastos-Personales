@@ -9,4 +9,8 @@ app.use(cors());
 app.use(morgan("dev"));
 app.use(express.json());
 
+import { taskrouter } from "./routes/tasks";
+
+app.use("/tasks",taskrouter);
+
 export default app;
