@@ -1,12 +1,13 @@
-FROM node:18
+# Usamos Nginx para servir archivos estáticos
+FROM nginx:alpine
 
-WORKDIR /app
+# Copiar archivos al directorio público de Nginx
+COPY . /usr/share/nginx/html
 
-COPY package*.json ./
-RUN npm install
-
-COPY . .
-
+# Exponer puerto 3000
 EXPOSE 3000
 
-CMD ["npm","run","dev"]
+# Ejecutar Nginx en puerto 3000
+RUN sed -i 's/listen       80;/listen 3000;/g' /etc/nginx/conf.d/default.conf
+
+CMD ["nginx", "-g", "daemon off;"]
