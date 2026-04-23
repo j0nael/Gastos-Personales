@@ -33,10 +33,62 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export interface PaginatedResult<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export const getTransactions = async (req: AuthRequest, res: Response) => {
   try {
-    const transactions = await Transaction.find({ user: req.userId }).sort({ createdAt: -1 });
-    res.json(transactions);
+    const { page = 1, limit = 10, startDate, endDate, category, type } = req.query;
+
+    const pageNum = Math.max(1, parseInt(page as string, 10));
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit as string, 10)));
+    const skip = (pageNum - 1) * limitNum;
+
+    const filter: Record<string, unknown> = { user: req.userId };
+
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) {
+        (filter.createdAt as Record<string, Date>).$gte = new Date(startDate as string);
+      }
+      if (endDate) {
+        const end = new Date(endDate as string);
+        end.setHours(23, 59, 59, 999);
+        (filter.createdAt as Record<string, Date>).$lte = end;
+      }
+    }
+
+    if (category) {
+      filter.category = category;
+    }
+
+    if (type) {
+      filter.type = type;
+    }
+
+    const [transactions, total] = await Promise.all([
+      Transaction.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean(),
+      Transaction.countDocuments(filter)
+    ]);
+
+    const result: PaginatedResult<unknown> = {
+      data: transactions,
+      total,
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil(total / limitNum)
+    };
+
+    res.json(result);
   } catch {
     res.status(500).json({ message: "Error al obtener transacciones" });
   }

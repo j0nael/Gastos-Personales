@@ -27,9 +27,6 @@ const createTransaction = (req, res) => __awaiter(void 0, void 0, void 0, functi
             if (!user) {
                 return res.status(404).json({ message: "Usuario no encontrado" });
             }
-            if (user.balance < amount) {
-                return res.status(400).json({ message: "Saldo insuficiente" });
-            }
             yield User_1.default.findByIdAndUpdate(req.userId, { $inc: { balance: -amount } });
         }
         const transaction = new Transaction_1.default({
@@ -48,8 +45,44 @@ const createTransaction = (req, res) => __awaiter(void 0, void 0, void 0, functi
 exports.createTransaction = createTransaction;
 const getTransactions = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const transactions = yield Transaction_1.default.find({ user: req.userId }).sort({ createdAt: -1 });
-        res.json(transactions);
+        const { page = 1, limit = 10, startDate, endDate, category, type } = req.query;
+        const pageNum = Math.max(1, parseInt(page, 10));
+        const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10)));
+        const skip = (pageNum - 1) * limitNum;
+        const filter = { user: req.userId };
+        if (startDate || endDate) {
+            filter.createdAt = {};
+            if (startDate) {
+                filter.createdAt.$gte = new Date(startDate);
+            }
+            if (endDate) {
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59, 999);
+                filter.createdAt.$lte = end;
+            }
+        }
+        if (category) {
+            filter.category = category;
+        }
+        if (type) {
+            filter.type = type;
+        }
+        const [transactions, total] = yield Promise.all([
+            Transaction_1.default.find(filter)
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limitNum)
+                .lean(),
+            Transaction_1.default.countDocuments(filter)
+        ]);
+        const result = {
+            data: transactions,
+            total,
+            page: pageNum,
+            limit: limitNum,
+            totalPages: Math.ceil(total / limitNum)
+        };
+        res.json(result);
     }
     catch (_a) {
         res.status(500).json({ message: "Error al obtener transacciones" });

@@ -29,4 +29,16 @@ exports.usersrouter.get("/balance", AuthMiddleware_1.authMiddleware, (req, res) 
         res.status(500).json({ message: "Error al obtener saldo" });
     }
 }));
+exports.usersrouter.get("/details", AuthMiddleware_1.authMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const user = yield User_1.default.findById(req.userId);
+        if (!user) {
+            return res.status(404).json({ message: "Usuario no encontrado" });
+        }
+        res.json(user);
+    }
+    catch (_a) {
+        res.status(500).json({ message: "Error al obtener el usuario" });
+    }
+}));
 //# sourceMappingURL=Users.js.map
