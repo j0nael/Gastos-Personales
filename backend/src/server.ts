@@ -9,7 +9,7 @@ app.use(cors());
 app.use(morgan("dev"));
 app.use(express.json());
 
-import { taskrouter } from "./routes/tasks";
+import { taskrouter } from "./Routes/tasks";
 
 app.use("/tasks",taskrouter);
 
