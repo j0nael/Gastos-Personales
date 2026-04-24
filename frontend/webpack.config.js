@@ -2,6 +2,7 @@ const path = require("path");
 const glob = require("glob");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+const Dotenv = require("dotenv-webpack");
 
 const INCLUDE_PATTERN =
   /<include\s+src=["'](.+?)["']\s*\/?>\s*(?:<\/include>)?/gis;
@@ -101,6 +102,14 @@ module.exports = {
     new MiniCssExtractPlugin({
       filename: "style.css",
       chunkFilename: "style.css",
+    }),
+    // Carga .env y expone las variables como process.env.XXX en el bundle.
+    // systemvars: true permite que valores pasados por el SO anulen el .env
+    // (útil para producción / Docker).
+    new Dotenv({
+      systemvars: true,
+      defaults: false,
+      silent: true,
     }),
   ],
   output: {

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <meta
@@ -7,12 +7,10 @@
       content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
     />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>
-      eCommerce Dashboard | TailAdmin - Tailwind CSS Admin Dashboard Template
-    </title>
+    <title>Panel | BienGastao</title>
   </head>
   <body
-    x-data="{ page: 'ecommerce', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
+    x-data="{ page: 'dashboard', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
     x-init="
          darkMode = JSON.parse(localStorage.getItem('darkMode'));
          $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
@@ -41,40 +39,353 @@
         <!-- ===== Header End ===== -->
 
         <!-- ===== Main Content Start ===== -->
-        <main>
+        <main x-data="dashboardPage()" x-init="init()">
           <div class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">
+            <!-- Error banner -->
+            <template x-if="error">
+              <div
+                class="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400"
+                x-text="error"
+              ></div>
+            </template>
+
+            <!-- Loading -->
+            <template x-if="loading">
+              <div
+                class="mb-6 flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-400"
+              >
+                <svg
+                  class="h-4 w-4 animate-spin text-brand-500"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  ></circle>
+                  <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Cargando datos...
+              </div>
+            </template>
+
             <div class="grid grid-cols-12 gap-4 md:gap-6">
-              <div class="col-span-12 space-y-6 xl:col-span-7">
-                <!-- Metric Group One -->
-                <include src="./partials/metric-group/metric-group-01.html" />
-                <!-- Metric Group One -->
-
-                <!-- ====== Chart One Start -->
-                <include src="./partials/chart/chart-01.html" />
-                <!-- ====== Chart One End -->
-              </div>
-              <div class="col-span-12 xl:col-span-5">
-                <!-- ====== Chart Two Start -->
-                <include src="./partials/chart/chart-02.html" />
-                <!-- ====== Chart Two End -->
-              </div>
-
+              <!-- =========== METRIC CARDS =========== -->
               <div class="col-span-12">
-                <!-- ====== Chart Three Start -->
-                <include src="./partials/chart/chart-03.html" />
-                <!-- ====== Chart Three End -->
+                <div
+                  class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 xl:grid-cols-4"
+                >
+                  <!-- Balance -->
+                  <div
+                    class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6"
+                  >
+                    <div
+                      class="flex items-center justify-center w-12 h-12 rounded-xl bg-brand-50 text-brand-500 dark:bg-brand-500/10"
+                    >
+                      <svg
+                        width="22"
+                        height="22"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M3 7a3 3 0 013-3h12a3 3 0 013 3v2H3V7zm0 4h18v6a3 3 0 01-3 3H6a3 3 0 01-3-3v-6zm11 3a1 1 0 011-1h3a1 1 0 110 2h-3a1 1 0 01-1-1z"
+                          fill="currentColor"
+                        />
+                      </svg>
+                    </div>
+                    <div class="mt-5">
+                      <span class="text-sm text-gray-500 dark:text-gray-400">
+                        Balance
+                      </span>
+                      <h4
+                        class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90"
+                        x-text="formatCurrency(balance)"
+                      >
+                        $0.00
+                      </h4>
+                    </div>
+                  </div>
+
+                  <!-- Ingresos del mes -->
+                  <div
+                    class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6"
+                  >
+                    <div
+                      class="flex items-center justify-center w-12 h-12 rounded-xl bg-success-50 text-success-600 dark:bg-success-500/10"
+                    >
+                      <svg
+                        width="22"
+                        height="22"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M12 4a1 1 0 011 1v10.586l3.293-3.293a1 1 0 111.414 1.414l-5 5a1 1 0 01-1.414 0l-5-5a1 1 0 011.414-1.414L11 15.586V5a1 1 0 011-1z"
+                          fill="currentColor"
+                          transform="rotate(180 12 12)"
+                        />
+                      </svg>
+                    </div>
+                    <div class="mt-5">
+                      <span class="text-sm text-gray-500 dark:text-gray-400">
+                        Ingresos del mes
+                      </span>
+                      <h4
+                        class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90"
+                        x-text="formatCurrency(monthlyIncome)"
+                      >
+                        $0.00
+                      </h4>
+                    </div>
+                  </div>
+
+                  <!-- Gastos del mes -->
+                  <div
+                    class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6"
+                  >
+                    <div
+                      class="flex items-center justify-center w-12 h-12 rounded-xl bg-error-50 text-error-600 dark:bg-error-500/10"
+                    >
+                      <svg
+                        width="22"
+                        height="22"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M12 4a1 1 0 011 1v10.586l3.293-3.293a1 1 0 111.414 1.414l-5 5a1 1 0 01-1.414 0l-5-5a1 1 0 011.414-1.414L11 15.586V5a1 1 0 011-1z"
+                          fill="currentColor"
+                        />
+                      </svg>
+                    </div>
+                    <div class="mt-5">
+                      <span class="text-sm text-gray-500 dark:text-gray-400">
+                        Gastos del mes
+                      </span>
+                      <h4
+                        class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90"
+                        x-text="formatCurrency(monthlyExpense)"
+                      >
+                        $0.00
+                      </h4>
+                    </div>
+                  </div>
+
+                  <!-- Transacciones -->
+                  <div
+                    class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6"
+                  >
+                    <div
+                      class="flex items-center justify-center w-12 h-12 rounded-xl bg-brand-50 text-brand-500 dark:bg-brand-500/10"
+                    >
+                      <svg
+                        width="22"
+                        height="22"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm3 3a1 1 0 100 2h10a1 1 0 100-2H7zm0 4a1 1 0 100 2h10a1 1 0 100-2H7zm0 4a1 1 0 100 2h6a1 1 0 100-2H7z"
+                          fill="currentColor"
+                        />
+                      </svg>
+                    </div>
+                    <div class="mt-5">
+                      <span class="text-sm text-gray-500 dark:text-gray-400">
+                        Transacciones (mes)
+                      </span>
+                      <h4
+                        class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90"
+                        x-text="monthlyCount"
+                      >
+                        0
+                      </h4>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div class="col-span-12 xl:col-span-5">
-                <!-- ====== Map One Start -->
-                <include src="./partials/map-01.html" />
-                <!-- ====== Map One End -->
-              </div>
-
+              <!-- =========== RECENT TRANSACTIONS =========== -->
               <div class="col-span-12 xl:col-span-7">
-                <!-- ====== Table One Start -->
-                <include src="./partials/table/table-01.html" />
-                <!-- ====== Table One End -->
+                <div
+                  class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
+                >
+                  <div
+                    class="flex items-center justify-between px-5 py-4 sm:px-6"
+                  >
+                    <h3
+                      class="text-lg font-semibold text-gray-800 dark:text-white/90"
+                    >
+                      Transacciones recientes
+                    </h3>
+                    <a
+                      href="transactions.html"
+                      class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.03]"
+                    >
+                      Ver todas
+                    </a>
+                  </div>
+
+                  <div class="overflow-x-auto">
+                    <table class="min-w-full">
+                      <thead
+                        class="border-y border-gray-100 dark:border-gray-800"
+                      >
+                        <tr>
+                          <th
+                            class="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 sm:px-6"
+                          >
+                            Fecha
+                          </th>
+                          <th
+                            class="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
+                          >
+                            Categoría
+                          </th>
+                          <th
+                            class="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
+                          >
+                            Tipo
+                          </th>
+                          <th
+                            class="px-5 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 sm:px-6"
+                          >
+                            Monto
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody
+                        class="divide-y divide-gray-100 dark:divide-gray-800"
+                      >
+                        <template x-if="!loading && recent.length === 0">
+                          <tr>
+                            <td
+                              colspan="4"
+                              class="px-5 py-10 text-center text-sm text-gray-500 dark:text-gray-400 sm:px-6"
+                            >
+                              Aún no tienes transacciones este mes.
+                              <a
+                                href="transactions.html"
+                                class="text-brand-500 hover:underline"
+                              >
+                                Crea la primera
+                              </a>
+                              .
+                            </td>
+                          </tr>
+                        </template>
+
+                        <template
+                          x-for="t in recent"
+                          :key="t._id"
+                        >
+                          <tr>
+                            <td
+                              class="px-5 py-4 text-sm text-gray-700 dark:text-gray-300 sm:px-6"
+                              x-text="formatDate(t.createdAt)"
+                            ></td>
+                            <td
+                              class="px-5 py-4 text-sm text-gray-700 dark:text-gray-300"
+                              x-text="categoryLabels[t.category] || t.category"
+                            ></td>
+                            <td class="px-5 py-4">
+                              <span
+                                :class="t.type === 'INCOME'
+                                  ? 'bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500'
+                                  : 'bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500'"
+                                class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium"
+                                x-text="typeLabels[t.type] || t.type"
+                              ></span>
+                            </td>
+                            <td
+                              class="px-5 py-4 text-right text-sm font-semibold sm:px-6"
+                              :class="t.type === 'INCOME' ? 'text-success-600' : 'text-error-600'"
+                            >
+                              <span
+                                x-text="(t.type === 'INCOME' ? '+ ' : '- ') + formatCurrency(t.amount)"
+                              ></span>
+                            </td>
+                          </tr>
+                        </template>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <!-- =========== CATEGORY BREAKDOWN =========== -->
+              <div class="col-span-12 xl:col-span-5">
+                <div
+                  class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6"
+                >
+                  <div class="flex items-center justify-between">
+                    <h3
+                      class="text-lg font-semibold text-gray-800 dark:text-white/90"
+                    >
+                      Gastos por categoría
+                    </h3>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">
+                      Mes actual
+                    </span>
+                  </div>
+
+                  <div class="mt-5 space-y-4">
+                    <template x-if="!loading && monthlyExpense === 0">
+                      <p
+                        class="py-6 text-center text-sm text-gray-500 dark:text-gray-400"
+                      >
+                        Sin gastos registrados este mes.
+                      </p>
+                    </template>
+
+                    <template
+                      x-for="entry in categoryEntries"
+                      :key="entry.key"
+                    >
+                      <div x-show="entry.value > 0">
+                        <div
+                          class="flex items-center justify-between mb-2 text-sm"
+                        >
+                          <span
+                            class="font-medium text-gray-700 dark:text-gray-300"
+                            x-text="entry.label"
+                          ></span>
+                          <span
+                            class="text-gray-500 dark:text-gray-400"
+                          >
+                            <span
+                              class="font-semibold text-gray-700 dark:text-gray-200"
+                              x-text="formatCurrency(entry.value)"
+                            ></span>
+                            <span class="ml-2" x-text="entry.pct + '%'"></span>
+                          </span>
+                        </div>
+                        <div
+                          class="relative h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800"
+                        >
+                          <div
+                            class="absolute left-0 top-0 h-full rounded-full bg-brand-500"
+                            :style="`width: ${entry.pct}%`"
+                          ></div>
+                        </div>
+                      </div>
+                    </template>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

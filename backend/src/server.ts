@@ -4,9 +4,9 @@ import express from "express";
 import cors from 'cors';
 import mongoose from "mongoose";
 import env from "./Config/env";
-import { authrouter } from "./Routes/Auth";
-import { transactionrouter } from "./Routes/Transactions";
-import { usersrouter } from "./Routes/Users";
+import { authrouter } from './routes/Auth'
+import { transactionrouter } from './routes/Transactions'
+import { usersrouter } from './routes/Users'
 
 const app = express();
 
