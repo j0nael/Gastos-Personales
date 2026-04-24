@@ -3,6 +3,7 @@
 //  Todos hablan con el backend a través de `api.js`.
 // =============================================================================
 
+import ApexCharts from "apexcharts";
 import {
   api,
   login,
@@ -185,7 +186,8 @@ export function dashboardPage() {
     monthlyIncome: 0,
     monthlyExpense: 0,
     monthlyCount: 0,
-    byCategory: {}, // { FOOD: sumaGastos, ... }
+    byCategory: {},
+    monthlyChartData: [],
     categories: CATEGORIES,
     categoryLabels: CATEGORY_LABELS,
     typeLabels: TYPE_LABELS,
@@ -203,11 +205,9 @@ export function dashboardPage() {
           balance: profile.balance,
         });
 
-        // Rango: primer día del mes en curso -> hoy
         const now = new Date();
         const start = new Date(now.getFullYear(), now.getMonth(), 1);
 
-        // Últimas 50 transacciones del mes para alimentar cards, tabla y gráfico
         const res = await listTransactions({
           page: 1,
           limit: 50,
@@ -232,9 +232,38 @@ export function dashboardPage() {
         this.monthlyIncome = inc;
         this.monthlyExpense = exp;
         this.byCategory = byCat;
-
-        // 5 más recientes para la tabla
         this.recent = items.slice(0, 5);
+
+        // Últimos 6 meses para el gráfico de barras
+        try {
+          const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+          const historicRes = await listTransactions({
+            page: 1,
+            limit: 500,
+            startDate: sixMonthsAgo.toISOString(),
+            endDate: now.toISOString(),
+          });
+          const historicItems = (historicRes && historicRes.data) || [];
+          const monthMap = {};
+          historicItems.forEach((t) => {
+            const d = new Date(t.createdAt);
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+            if (!monthMap[key]) monthMap[key] = { income: 0, expense: 0 };
+            if (t.type === "INCOME") monthMap[key].income += Number(t.amount) || 0;
+            else if (t.type === "EXPENSE") monthMap[key].expense += Number(t.amount) || 0;
+          });
+          this.monthlyChartData = Array.from({ length: 6 }, (_, i) => {
+            const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+            return {
+              label: d.toLocaleString("es-ES", { month: "short", year: "2-digit" }),
+              income: (monthMap[key] && monthMap[key].income) || 0,
+              expense: (monthMap[key] && monthMap[key].expense) || 0,
+            };
+          });
+        } catch (_) {
+          // Los gráficos son opcionales; no romper el dashboard si fallan
+        }
       } catch (e) {
         if (e instanceof ApiError && e.status === 401) {
           window.location.replace("signin.html");
@@ -245,6 +274,9 @@ export function dashboardPage() {
       } finally {
         this.loading = false;
       }
+
+      await this.$nextTick();
+      this._initCharts();
     },
 
     get balance() {
@@ -252,10 +284,7 @@ export function dashboardPage() {
     },
 
     get categoryEntries() {
-      const total = Object.values(this.byCategory).reduce(
-        (a, b) => a + b,
-        0,
-      );
+      const total = Object.values(this.byCategory).reduce((a, b) => a + b, 0);
       return CATEGORIES.map((c) => {
         const value = this.byCategory[c] || 0;
         return {
@@ -265,6 +294,79 @@ export function dashboardPage() {
           pct: total > 0 ? Math.round((value / total) * 100) : 0,
         };
       }).sort((a, b) => b.value - a.value);
+    },
+
+    _initCharts() {
+      const COLORS = ["#465fff", "#f97316", "#22c55e", "#ef4444", "#8b5cf6", "#06b6d4"];
+
+      // Gráfico dona — gastos por categoría
+      const donutEl = document.getElementById("chart-category-donut");
+      if (donutEl) {
+        donutEl.innerHTML = "";
+        const entries = this.categoryEntries.filter((e) => e.value > 0);
+        if (entries.length > 0) {
+          new ApexCharts(donutEl, {
+            series: entries.map((e) => e.value),
+            labels: entries.map((e) => e.label),
+            chart: {
+              type: "donut",
+              height: 220,
+              fontFamily: "Outfit, sans-serif",
+              toolbar: { show: false },
+            },
+            colors: COLORS,
+            legend: {
+              position: "bottom",
+              fontFamily: "Outfit, sans-serif",
+              fontSize: "12px",
+            },
+            dataLabels: { enabled: false },
+            tooltip: { y: { formatter: (val) => formatCurrency(val) } },
+            plotOptions: { pie: { donut: { size: "60%" } } },
+            stroke: { width: 0 },
+          }).render();
+        }
+      }
+
+      // Gráfico de barras — ingresos vs gastos últimos 6 meses
+      const barEl = document.getElementById("chart-monthly-bar");
+      if (barEl && this.monthlyChartData.length) {
+        barEl.innerHTML = "";
+        new ApexCharts(barEl, {
+          series: [
+            { name: "Ingresos", data: this.monthlyChartData.map((m) => m.income) },
+            { name: "Gastos", data: this.monthlyChartData.map((m) => m.expense) },
+          ],
+          chart: {
+            type: "bar",
+            height: 260,
+            fontFamily: "Outfit, sans-serif",
+            toolbar: { show: false },
+          },
+          colors: ["#22c55e", "#ef4444"],
+          xaxis: {
+            categories: this.monthlyChartData.map((m) => m.label),
+            axisBorder: { show: false },
+            axisTicks: { show: false },
+          },
+          plotOptions: {
+            bar: {
+              columnWidth: "45%",
+              borderRadius: 4,
+              borderRadiusApplication: "end",
+            },
+          },
+          dataLabels: { enabled: false },
+          legend: {
+            position: "top",
+            horizontalAlign: "left",
+            fontFamily: "Outfit, sans-serif",
+          },
+          grid: { yaxis: { lines: { show: true } } },
+          stroke: { show: true, width: 2, colors: ["transparent"] },
+          tooltip: { y: { formatter: (val) => formatCurrency(val) } },
+        }).render();
+      }
     },
   };
 }
